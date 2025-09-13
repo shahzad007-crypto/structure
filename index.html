@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compare and Contrast Quiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a, #4f46e5);
+        }
+        .container {
+            max-width: 900px;
+        }
+        .question-box {
+            min-height: 250px;
+        }
+        /* Custom font size and weight for the question text */
+        .question-box p, .question-box div.text-3xl {
+            font-size: 32px;
+            font-weight: 700; /* Bold */
+        }
+        @media (max-width: 768px) {
+            .question-box p, .question-box div.text-3xl {
+                font-size: 24px; /* Adjust for smaller screens */
+            }
+        }
+        .message-box {
+            transition: all 0.3s ease-in-out;
+            transform: scale(0.95);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .message-box.show {
+            transform: scale(1);
+            opacity: 1;
+            pointer-events: all;
+        }
+        .message-content {
+            padding: 24px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .message-content h3 {
+            font-weight: bold;
+        }
+        .message-content p {
+            margin-top: 8px;
+        }
+        .quiz-locked::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.7);
+            cursor: not-allowed;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 text-gray-800">
+    <div class="container mx-auto bg-white p-8 md:p-12 rounded-2xl shadow-2xl flex flex-col items-center">
+        <!-- Message Box for Alerts/Feedback -->
+        <div id="messageBox" class="message-box fixed inset-0 flex items-center justify-center z-50 p-4 bg-black bg-opacity-50">
+            <div class="message-content w-full max-w-sm text-center">
+                <h3 id="messageTitle" class="text-3xl font-bold text-gray-800"></h3>
+                <p id="messageText" class="text-gray-600 my-4"></p>
+                <button id="closeMessageBtn" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">OK</button>
+            </div>
+        </div>
+
+        <!-- Quiz Heading -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-indigo-800">Compare and Contrast</h1>
+            <p class="mt-2 text-gray-500 text-sm md:text-base">A quiz to check your knowledge of connecting words and phrases.</p>
+        </header>
+
+        <!-- Quiz Container -->
+        <main id="quizContainer" class="w-full relative">
+            <!-- Questions will be dynamically inserted here -->
+        </main>
+        
+        <!-- Cooldown message and Start New Quiz button -->
+        <div id="cooldownMessage" class="hidden text-center mt-8">
+            <p id="cooldownText" class="text-lg md:text-xl font-semibold text-red-600"></p>
+            <button id="startNewBtn" class="mt-4 px-8 py-3 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed">Start New Quiz</button>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <footer class="mt-8 flex justify-center w-full max-w-lg space-x-4">
+            <button id="prevBtn" class="px-8 py-3 bg-gray-300 text-gray-700 rounded-xl shadow-lg hover:bg-gray-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 opacity-50 cursor-not-allowed">Previous</button>
+            <button id="nextBtn" class="px-8 py-3 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Next</button>
+        </footer>
+    </div>
+
+    <script>
+        // Global variables and constants
+        const QUIZ_COOLDOWN_MINUTES = 3;
+        const quizData = [
+            // Slide 1: Multiple Choice
+            {
+                type: 'multiple-choice',
+                title: 'Quiz 1: Choose the Best Word',
+                questions: [
+                    { id: 1, text: 'Cats are independent, ____ dogs are very social.', options: ['similarly', 'but', 'likewise', 'and'], answer: 'but' },
+                    { id: 2, text: 'The red car is fast, ____ the blue one is faster.', options: ['in contrast', 'however', 'similarly', 'both'], answer: 'however' },
+                    { id: 3, text: 'Both the sun ____ the moon appear round in the sky.', options: ['while', 'and', 'but', 'conversely'], answer: 'and' },
+                    { id: 4, text: 'Reading a book is a private activity; ____ a debate club is a public one.', options: ['similarly', 'on the other hand', 'and', 'in addition'], answer: 'on the other hand' },
+                    { id: 5, text: 'They both enjoy hiking; ____, they both love to camp.', options: ['likewise', 'but', 'whereas', 'conversely'], answer: 'likewise' },
+                    { id: 6, text: 'She is a talented writer, ____ he is a skilled musician.', options: ['similarly', 'however', 'whereas', 'nonetheless'], answer: 'whereas' },
+                    { id: 7, text: 'The climate in Oman is hot, ____ the climate in Canada is cold.', options: ['whereas', 'in the same way', 'and', 'in addition'], answer: 'whereas' },
+                    { id: 8, text: 'His presentation was excellent; ____, her report was top-notch.', options: ['similarly', 'conversely', 'but', 'however'], answer: 'similarly' },
+                    { id: 9, text: 'The two theories are quite different; ____, they share a few core principles.', options: ['therefore', 'nonetheless', 'and', 'also'], answer: 'nonetheless' },
+                    { id: 10, text: 'Both online classes ____ traditional lectures require self-discipline.', options: ['but', 'and', 'while', 'similarly'], answer: 'and' }
+                ]
+            },
+            // Slide 2: Fill-in-the-Blank
+            {
+                type: 'fill-in-the-blank',
+                title: 'Quiz 2: Fill in the Blank',
+                wordBank: ['on the other hand', 'in contrast', 'also', 'similarly', 'however', 'while', 'conversely', 'and', 'likewise', 'but'],
+                questions: [
+                    // Answers can be 'in contrast' or 'on the other hand'
+                    { id: 11, text: 'My brother loves to eat meat; ____, I am a vegetarian.', answer: ['in contrast', 'on the other hand'] },
+                    // Answers can be 'similarly' or 'likewise'
+                    { id: 12, text: 'This computer is fast; ____, that one has a powerful processor.', answer: ['similarly', 'likewise'] },
+                    { id: 13, text: 'Learning a new language is challenging, but it is ____ very rewarding.', answer: ['also'] },
+                    // Answers can be 'while' or 'but'
+                    { id: 14, text: 'The old city is quiet, ____ the new part is noisy.', answer: ['while', 'but'] },
+                    // Answers can be 'however', 'but', 'in contrast', or 'on the other hand'
+                    { id: 15, text: 'The first experiment failed; ____, the second attempt succeeded.', answer: ['however', 'but', 'in contrast', 'on the other hand'] },
+                    // Answers can be 'on the other hand', 'in contrast', or 'conversely'
+                    { id: 16, text: 'Dubai has modern skyscrapers, ____, Muscat has historical forts.', answer: ['on the other hand', 'in contrast', 'conversely'] },
+                    // Answers can be 'conversely', 'in contrast', or 'on the other hand'
+                    { id: 17, text: 'She enjoys fiction novels; ____, her friend prefers non-fiction.', answer: ['conversely', 'in contrast', 'on the other hand'] },
+                    { id: 18, text: 'Both cats ____ dogs are popular pets.', answer: ['and'] },
+                    // Answers can be 'likewise', 'similarly', or 'also'
+                    { id: 19, text: 'The first draft was good; ____, the final version was excellent.', answer: ['likewise', 'similarly', 'also'] },
+                    // Answers can be 'but' or 'however'
+                    { id: 20, text: 'Their cars are expensive, ____ they are also fuel-efficient.', answer: ['but', 'however'] }
+                ]
+            },
+            // Slide 3: Sentence Combination
+            {
+                type: 'sentence-combination',
+                title: 'Quiz 3: Combine the Sentences',
+                questions: [
+                    { id: 21, text: ['The climate in the north is cold.', 'The climate in the south is hot.'], options: ['however', 'similarly'], answer: 'however' },
+                    { id: 22, text: ['He loves to draw cartoons.', 'His sister loves to paint landscapes.'], options: ['whereas', 'likewise'], answer: 'whereas' },
+                    { id: 23, text: ['The sun provides light.', 'The moon reflects it.'], options: ['similarly', 'but'], answer: 'but' },
+                    { id: 24, text: ['The first movie was a success.', 'The second one was a flop.'], options: ['likewise', 'but'], answer: 'but' },
+                    { id: 25, text: ['The ancient pyramids were built from stone.', 'The modern skyscrapers are built from steel.'], options: ['conversely', 'in addition'], answer: 'conversely' },
+                    { id: 26, text: ['My cousin is an excellent swimmer.', 'I am a good runner.'], options: ['whereas', 'similarly'], answer: 'whereas' },
+                    { id: 27, text: ['The school offers a science program.', 'The school offers a language program.'], options: ['while', 'and'], answer: 'and' },
+                    { id: 28, text: ['Both animals can climb trees.', 'Both animals have sharp claws.'], options: ['nonetheless', 'similarly'], answer: 'similarly' },
+                    { id: 29, text: ['I enjoy reading fantasy books.', 'My friend enjoys reading biographies.'], options: ['likewise', 'in contrast'], answer: 'in contrast' },
+                    { id: 30, text: ['Learning to code is difficult.', 'It is very useful.'], options: ['however', 'similarly'], answer: 'however' }
+                ]
+            }
+        ];
+
+        let currentSlideIndex = 0;
+        let score = 0;
+        let answeredQuestions = new Set();
+        let quizCompletionTime = localStorage.getItem('quizCompletionTime');
+        const quizContainer = document.getElementById('quizContainer');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const messageBox = document.getElementById('messageBox');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageText = document.getElementById('messageText');
+        const closeMessageBtn = document.getElementById('closeMessageBtn');
+        const cooldownMessage = document.getElementById('cooldownMessage');
+        const cooldownText = document.getElementById('cooldownText');
+        const startNewBtn = document.getElementById('startNewBtn');
+        let countdownInterval;
+
+        // Functions to display and manage the quiz
+        function showMessageBox(title, text) {
+            messageTitle.textContent = title;
+            messageText.textContent = text;
+            messageBox.classList.add('show');
+        }
+
+        function hideMessageBox() {
+            messageBox.classList.remove('show');
+        }
+
+        function renderQuiz() {
+            quizContainer.innerHTML = '';
+            const slide = quizData[currentSlideIndex];
+            
+            const slideTitle = document.createElement('h2');
+            slideTitle.className = 'text-center text-2xl md:text-3xl font-extrabold text-indigo-700 mb-6';
+            slideTitle.textContent = slide.title;
+            quizContainer.appendChild(slideTitle);
+
+            if (slide.type === 'multiple-choice') {
+                slide.questions.forEach((q, index) => {
+                    const questionElement = document.createElement('div');
+                    questionElement.className = 'my-8 p-6 bg-gray-50 rounded-xl shadow-md';
+                    questionElement.innerHTML = `
+                        <div class="mb-4 text-gray-700 font-medium">Question ${index + 1} of 10</div>
+                        <p class="mb-4 text-gray-900">${q.text}</p>
+                    `;
+                    const optionsList = document.createElement('div');
+                    optionsList.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+                    
+                    q.options.forEach(option => {
+                        const button = document.createElement('button');
+                        button.textContent = option;
+                        button.className = 'option-btn w-full px-6 py-3 border border-gray-300 rounded-lg shadow-sm font-bold hover:bg-indigo-100 hover:border-indigo-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
+                        button.onclick = () => {
+                            handleAnswer(option, q.answer, q.id);
+                        };
+                        optionsList.appendChild(button);
+                    });
+                    questionElement.appendChild(optionsList);
+                    quizContainer.appendChild(questionElement);
+                });
+            } else if (slide.type === 'fill-in-the-blank') {
+                const wordBankDiv = document.createElement('div');
+                wordBankDiv.className = 'mb-6 p-4 bg-yellow-100 text-yellow-800 rounded-lg border-2 border-yellow-300 font-bold text-lg text-center md:text-xl';
+                wordBankDiv.innerHTML = 'Word Bank: ' + slide.wordBank.join(', ');
+                quizContainer.appendChild(wordBankDiv);
+
+                slide.questions.forEach((q, index) => {
+                    const questionElement = document.createElement('div');
+                    questionElement.className = 'my-8 p-6 bg-gray-50 rounded-xl shadow-md';
+                    questionElement.innerHTML = `
+                        <div class="mb-4 text-gray-700 font-medium">Question ${index + 1} of 10</div>
+                        <p class="mb-4 text-gray-900">${q.text}</p>
+                    `;
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.placeholder = 'Type your answer here...';
+                    input.className = 'w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
+                    input.onchange = (e) => {
+                        handleAnswer(e.target.value.toLowerCase().trim(), q.answer, q.id);
+                    };
+                    questionElement.appendChild(input);
+                    quizContainer.appendChild(questionElement);
+                });
+            } else if (slide.type === 'sentence-combination') {
+                slide.questions.forEach((q, index) => {
+                    const questionElement = document.createElement('div');
+                    questionElement.className = 'my-8 p-6 bg-gray-50 rounded-xl shadow-md';
+                    questionElement.innerHTML = `
+                        <div class="mb-4 text-gray-700 font-medium">Question ${index + 1} of 10</div>
+                        <div class="text-3xl text-gray-900 mb-2">${q.text[0]}</div>
+                        <div class="text-3xl text-gray-900 mb-4">${q.text[1]}</div>
+                    `;
+                    const optionsList = document.createElement('div');
+                    optionsList.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+                    
+                    q.options.forEach(option => {
+                        const button = document.createElement('button');
+                        button.textContent = option;
+                        button.className = 'option-btn w-full px-6 py-3 border border-gray-300 rounded-lg shadow-sm font-bold hover:bg-indigo-100 hover:border-indigo-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
+                        button.onclick = () => {
+                            handleAnswer(option, q.answer, q.id);
+                        };
+                        optionsList.appendChild(button);
+                    });
+                    questionElement.appendChild(optionsList);
+                    quizContainer.appendChild(questionElement);
+                });
+            }
+            updateNavButtons();
+        }
+
+        // Updated handleAnswer function to check for multiple correct answers in an array
+        function handleAnswer(selectedOption, correctAnswer, questionId) {
+            // Check if this question has already been answered
+            if (answeredQuestions.has(questionId)) {
+                showMessageBox("Already Answered", "You have already answered this question.");
+                return;
+            }
+
+            // Normalize selected option for case-insensitive and trim check
+            const normalizedSelection = selectedOption.toLowerCase().trim();
+            const correctText = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer];
+            const isCorrect = correctText.map(ans => ans.toLowerCase().trim()).includes(normalizedSelection);
+
+            if (isCorrect) {
+                score++;
+                answeredQuestions.add(questionId);
+                showMessageBox("Correct!", "You got it right. Great job!");
+            } else {
+                showMessageBox("Incorrect", `The correct answer(s) is/are: ${correctText.join(', ')}. Keep trying!`);
+            }
+        }
+
+        function updateNavButtons() {
+            // Previous button logic
+            if (currentSlideIndex === 0) {
+                prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                prevBtn.disabled = true;
+            } else {
+                prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                prevBtn.disabled = false;
+            }
+            // Next button logic
+            if (currentSlideIndex === quizData.length - 1) {
+                nextBtn.textContent = 'Finish';
+            } else {
+                nextBtn.textContent = 'Next';
+            }
+        }
+
+        function startCooldownTimer() {
+            const completionTime = parseInt(localStorage.getItem('quizCompletionTime'), 10);
+            const cooldownPeriod = QUIZ_COOLDOWN_MINUTES * 60 * 1000;
+            const endTime = completionTime + cooldownPeriod;
+
+            countdownInterval = setInterval(() => {
+                const now = Date.now();
+                const remainingTime = endTime - now;
+
+                if (remainingTime <= 0) {
+                    clearInterval(countdownInterval);
+                    cooldownMessage.classList.add('hidden');
+                    quizContainer.classList.remove('quiz-locked');
+                    startNewBtn.disabled = false;
+                    showMessageBox("Quiz Available!", "You can now start a new quiz.");
+                } else {
+                    const minutes = Math.floor(remainingTime / (60 * 1000));
+                    const seconds = Math.floor((remainingTime % (60 * 1000)) / 1000);
+                    cooldownText.textContent = `Time remaining to retake: ${minutes}m ${seconds}s`;
+                }
+            }, 1000);
+        }
+
+        function checkQuizStatus() {
+            const completionTime = localStorage.getItem('quizCompletionTime');
+            if (completionTime) {
+                const timeElapsed = Date.now() - parseInt(completionTime, 10);
+                const cooldownPeriod = QUIZ_COOLDOWN_MINUTES * 60 * 1000;
+
+                if (timeElapsed < cooldownPeriod) {
+                    quizContainer.classList.add('quiz-locked');
+                    cooldownMessage.classList.remove('hidden');
+                    startNewBtn.disabled = true;
+                    startCooldownTimer();
+                } else {
+                    cooldownMessage.classList.add('hidden');
+                    startNewBtn.disabled = false;
+                }
+            } else {
+                cooldownMessage.classList.add('hidden');
+            }
+            renderQuiz();
+        }
+
+        function startNewQuiz() {
+            // Reset quiz state
+            score = 0;
+            currentSlideIndex = 0;
+            answeredQuestions.clear();
+            localStorage.removeItem('quizCompletionTime');
+
+            // Hide the cooldown message and button, and enable the quiz container
+            cooldownMessage.classList.add('hidden');
+            quizContainer.classList.remove('quiz-locked');
+
+            renderQuiz();
+        }
+
+        // Event listeners for navigation and new button
+        prevBtn.addEventListener('click', () => {
+            if (currentSlideIndex > 0) {
+                currentSlideIndex--;
+                renderQuiz();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentSlideIndex < quizData.length - 1) {
+                currentSlideIndex++;
+                renderQuiz();
+            } else {
+                // Quiz is complete, show final score and start cooldown
+                localStorage.setItem('quizCompletionTime', Date.now());
+                quizContainer.classList.add('quiz-locked');
+                cooldownMessage.classList.remove('hidden');
+                startNewBtn.disabled = true;
+                clearInterval(countdownInterval);
+                startCooldownTimer();
+                showMessageBox("Quiz Complete!", `You've successfully completed the quiz. Your final score is ${score} out of 30.`);
+            }
+        });
+
+        closeMessageBtn.addEventListener('click', hideMessageBox);
+        startNewBtn.addEventListener('click', startNewQuiz);
+
+        // Initialize quiz on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkQuizStatus();
+        });
+    </script>
+</body>
+</html>
